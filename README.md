@@ -69,9 +69,26 @@ stringParserTest4 = assertEquals (stringParser "baz" input1) Nothing
 ```
 
 - Please write a function `tupleParser :: forall a b. Parser a -> Parser b -> Parser (Tuple a b)`. Check that these tests run correctly:
+
+<!-- TODO: provide two solutions: one by hand and one using Apply -->
+
 ```purescript
-parserrTupleTest1 = assertEquals (stringParser )
+tupleParserTest1 = assertEquals (tupleParser (stringParser "bat") (intParser "bar")) (Just (Tuple "string" 1))
+
+tupleParserTest2 = assertEquals (tupleParser (stringParser "x") (intParser "bat")) Nothing
 ```
 
+- (Only for the curious since it is not directly relevant to our topic) Please write a function `fold :: Array String -> Maybe Input`. `fold` should transform from an array of command-line options to `Input`. Check that these tests run correctly:
 
-- (Only for the curious) Please write a function `fold :: Array String -> Maybe Input`. `fold`
+```purescript
+foldTest1 = assertEquals
+  (fold
+    [ "--x", "1"
+    , "--y", "string", "another string"
+    , "--z"
+    ]) $ Just $ Map.fromFoldable ["x" /\ ["2"], "y" /\ ["string", "another string"], "z" /\ [] ]
+
+foldTest2 = assertEquals (fold ["x"]) Nothing
+
+foldTest3 = assertEquals (fold []) $ Just mempty
+```
