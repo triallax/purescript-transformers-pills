@@ -114,7 +114,7 @@ type Parser a
 
 For now, we will be using `String` to represent errors, but generally, you should be using a custom ADT instead.
 
-1. Rewrite `intParser` to follow the new `Parser` type. Check that these tests run correctly:
+1. Please rewrite `intParser` to follow the new `Parser` type. Check that these tests run correctly:
 
 ```purescript
 intParserTest1 = assertEquals (intParser "port" input1) (Right 8000)
@@ -126,7 +126,7 @@ intParserTest3 = assertEquals (intParser "host" input1) (Left "Value of option \
 intParserTest4 = assertEquals (intParser "port" $ Map.fromFoldable [ "port" /\ [ "8000", "8080" ] ]) (Left "Expected option \"port\" to have one value only")
 ```
 
-2. Rewrite `stringParser` to follow the new `Parser` type. Check that these tests run correctly:
+2. Please rewrite `stringParser` to follow the new `Parser` type. Check that these tests run correctly:
 
 ```purescript
 stringParserTest1 = assertEquals (stringParser "host" input1) (Right "example.com")
