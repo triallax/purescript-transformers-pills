@@ -20,7 +20,7 @@ All the code snippets are under [the 3-clause BSD license](https://opensource.or
 
 The general plan is to build a rudimentary command-line option parser and then expand it using monad transformers to add extra features and get cleaner code.
 
-We expect our minimum viable product (MVP) to be able to parse basic command-line options: `ps-server --host example.com --port 8000 --login admin --password hunter2`.
+We expect our minimum viable product (MVP) to be able to parse basic command-line options: `ps-client --scheme https --host example.com --port 8000 --login admin --password hunter2`.
 
 Let's model our problem domain (I always wanted to say that):
 
@@ -32,10 +32,8 @@ type Input = Map String (Array String)
 
 The representation of the options in our command example would look like this:
 
-`ps-server --host example.com --port 8000 --login admin --password hunter2`.
-
 ```purescript
-input1 = Map.fromFoldable [ Tuple "host" ["example.com"], Tuple "port" ["8000"], Tuple "login" ["admin"], Tuple "password" ["hunter2"] ]
+exampleInput = Map.fromFoldable [ Tuple "scheme" ["https"], Tuple "host" ["example.com"], Tuple "port" ["8000"], Tuple "login" ["admin"], Tuple "password" ["hunter2"] ]
 ```
 
 We'll need to transform `Input` into well-typed values (`Int`, `String`, `Bool`, etc.). That's the purpose of `Parser`:
@@ -49,11 +47,11 @@ Exercises:
 1. Please write a function `intParser :: String -> Parser Int`. `String` here represents the option name. Check that these tests run correctly:
 
 ```purescript
-intParserTest1 = assertEquals (intParser "port" input1) (Just 8000)
+intParserTest1 = assertEquals (intParser "port" exampleInput) (Just 8000)
 
-intParserTest2 = assertEquals (intParser "pord" input1) Nothing
+intParserTest2 = assertEquals (intParser "pord" exampleInput) Nothing
 
-intParserTest3 = assertEquals (intParser "host" input1) Nothing
+intParserTest3 = assertEquals (intParser "host" exampleInput) Nothing
 
 intParserTest4 = assertEquals (intParser "port" $ Map.fromFoldable [ "port" /\ [ "8000", "8080" ] ]) Nothing
 ```
@@ -61,13 +59,13 @@ intParserTest4 = assertEquals (intParser "port" $ Map.fromFoldable [ "port" /\ [
 2. Please write a function `stringParser :: String -> Parser String`. Check that these tests run correctly:
 
 ```purescript
-stringParserTest1 = assertEquals (stringParser "host" input1) (Just "example.com")
+stringParserTest1 = assertEquals (stringParser "host" exampleInput) (Just "example.com")
 
-stringParserTest2 = assertEquals (stringParser "login" input1) (Just "admin")
+stringParserTest2 = assertEquals (stringParser "login" exampleInput) (Just "admin")
 
-stringParserTest3 = assertEquals (stringParser "password" input1) (Just "hunter2")
+stringParserTest3 = assertEquals (stringParser "password" exampleInput) (Just "hunter2")
 
-stringParserTest4 = assertEquals (stringParser "whatever" input1) Nothing
+stringParserTest4 = assertEquals (stringParser "whatever" exampleInput) Nothing
 
 stringParserTest5 = assertEquals (stringParser "host" $ Map.fromFoldable [ "host" /\ [ "example.com", "purescript.org" ] ]) Nothing
 ```
@@ -80,7 +78,7 @@ stringParserTest5 = assertEquals (stringParser "host" $ Map.fromFoldable [ "host
 ```purescript
 credentialsParserTest = assertEquals (tupleParser (stringParser "login") (stringParser "password")) (Just (Tuple "admin" "hunter2"))
 
-serverParserTest = assertEquals (tupleParser (stringParser "host") (intParser "port")) (Just (Tuple "example.com" 8000))
+clientParserTest = assertEquals (tupleParser (stringParser "host") (intParser "port")) (Just (Tuple "example.com" 8000))
 
 failedTupleTest = assertEquals (tupleParser (intParser "host") (stringParser "port")) Nothing
 ```
@@ -117,11 +115,11 @@ For now, we will be using `String` to represent errors, but generally, you shoul
 1. Please rewrite `intParser` to follow the new `Parser` type. Check that these tests run correctly:
 
 ```purescript
-intParserTest1 = assertEquals (intParser "port" input1) (Right 8000)
+intParserTest1 = assertEquals (intParser "port" exampleInput) (Right 8000)
 
 intParserTest2 = assertEquals (intParser "port" $ Map.fromFoldable [ "pord" \/ [ "8000" ] ]) (Left "Missing option \"port\"")
 
-intParserTest3 = assertEquals (intParser "host" input1) (Left "Value of option \"host\" is not a valid integer")
+intParserTest3 = assertEquals (intParser "host" exampleInput) (Left "Value of option \"host\" is not a valid integer")
 
 intParserTest4 = assertEquals (intParser "port" $ Map.fromFoldable [ "port" /\ [ "8000", "8080" ] ]) (Left "Expected option \"port\" to have one value only")
 ```
@@ -129,11 +127,71 @@ intParserTest4 = assertEquals (intParser "port" $ Map.fromFoldable [ "port" /\ [
 2. Please rewrite `stringParser` to follow the new `Parser` type. Check that these tests run correctly:
 
 ```purescript
-stringParserTest1 = assertEquals (stringParser "host" input1) (Right "example.com")
+stringParserTest1 = assertEquals (stringParser "host" exampleInput) (Right "example.com")
 
-stringParserTest2 = assertEquals (stringParser "whatever" input1) (Left "Missing option \"whatever\"")
+stringParserTest2 = assertEquals (stringParser "whatever" exampleInput) (Left "Missing option \"whatever\"")
 
 stringParserTest3 = assertEquals (stringParser "host" $ Map.fromFoldable [ "port" /\ [] ]) (Left "Option \"port\" has no value")
 
 stringParserTest4 = assertEquals (stringParser "host" $ Map.fromFoldable [ "host" /\ [ "example.com", "purescript.org" ] ]) (Left "Expected option \"host\" to have one value only")
+```
+
+<!-- TODO: Add an exercise for a parser that only allows a string from an array. For example, when used for `scheme`, it should only allow `http` and `https` as values. -->
+
+#### Pill 3
+
+You might have noticed that we haven't defined what the types that represent our hypothetical command's options will look like. Since we are _totally_ good functional programmers here, we'll clearly model our problem domain now:
+
+```purescript
+data Scheme = Http | Https
+
+derive instance eqScheme :: Eq Scheme
+
+-- Server $SCHEME $HOST $PORT
+data Server = Server Scheme String Int
+
+derive instance eqServer :: Eq Server
+
+type Credentials = { login :: String, password :: String }
+
+data Options = Options Server Credentials
+
+derive instance eqOptions :: Eq Options
+```
+
+Now that we have our desired types, we'll want to compose parsers so they would output them instead of unsafe strings.
+
+1. Please write a function `schemeParser :: String -> Parser Scheme`. Make sure it passes the following tests:
+
+```purescript
+schemeParserTest1 = assertEquals (schemeParser "scheme" (Map.singleton "scheme" ["http"])) (Right Http)
+
+schemeParserTest2 = assertEquals (schemeParser "scheme" (Map.singleton "scheme" ["https"])) (Right Https)
+
+schemeParserTest3 = assertEquals (schemeParser "scheme" (Map.singleton "scheme" ["hddp"])) (Left "Expected option \"scheme\" to have value \"http\" or \"https\".")
+```
+
+2. Please write a function `serverParser :: Parser Scheme -> Parser String -> Parser Int -> Parser Server`. Make sure it passes the following tests:
+
+```purescript
+appliedServerParser = serverParser (schemeParser "scheme") (stringParser "host") (intParser "port")
+
+serverParserTest1 = assertEquals (appliedServerParser $ Map.fromFoldable ["scheme" /\ [ "http" ], "host" /\ ["example.com"], "port" /\ ["8080"]]) (Right (Server Http "example.com" 8080))
+```
+
+3. Please write a function `credentialsParser :: Parser String -> Parser String -> Parser Credentials`. Make sure it passes the following tests:
+
+```purescript
+appliedCredentialsParser = credentialsParser (stringParser "login") (stringParser ("password"))
+
+credentialsParserTest1 = assertEquals (appliedCredentialsParser $ Map.fromFoldable ["login" /\ ["admin"], "password" /\ ["123456"]]) (Right { login: "admin", password: "123456" })
+```
+
+4. Please write a function `optionsParser :: Parser Server -> Parser Credentials -> Parser Options`. Make sure it passes the following tests:
+```purescript
+appliedOptionsParser = optionsParser appliedServerParser appliedCredentialsParser
+
+`ps-client --scheme https --host example.com --port 8000 --login admin --password hunter2`.
+
+optionsParserTest = assertEquals (appliedOptionsParser exampleInput) (Right $ Options (Server Https "example.com" 8000) { login: "admin", password: "hunter2" })
 ```
