@@ -188,6 +188,7 @@ credentialsParserTest1 = assertEquals (appliedCredentialsParser $ Map.fromFoldab
 ```
 
 4. Please write a function `optionsParser :: Parser Server -> Parser Credentials -> Parser Options`. Make sure it passes the following tests:
+
 ```purescript
 appliedOptionsParser = optionsParser appliedServerParser appliedCredentialsParser
 
@@ -208,3 +209,44 @@ type Parser a
 The idea here is that each parser will have its own help text, and when composing parsers, each parser's help text will be joined with the next one. At the end, we will be able to show the full command help text to the user.
 
 <!-- TODO: add some exercises. -->
+
+### Pill 5
+
+Many readers will have probably noticed that composing parsers is unnecessarily verbose. For example, here's a possible implementation of `serverParser`:
+
+```purescript
+serverParser :: Parser Scheme -> Parser String -> Parser Int -> Parser Server
+serverParser schemeParser hostParser portParser =
+  Array.concat [ fst schemeParser, fst hostParser, fst portParser ]
+    /\ \input -> do
+        scheme <- snd schemeParser input
+        host <- snd hostParser input
+        port <- snd portParser input
+        pure $ Server scheme host port
+```
+
+Wouldn't it be nice if we could just use `<$>` and `<*>` like this:
+
+```purescript
+serverParser schemeParser hostParser portParser =
+  Server <$> schemeParser <*> hostParser <*> portParser
+```
+
+Or even:
+
+```purescript
+serverParser = lift3 Server
+```
+
+You might have guessed that if we want to do that, we have to declare `Functor` and `Apply` instances for `Parser`. However, we can't do that right now, as `Parser` is a type alias, and PureScript doesn't support declaring instances for type aliases. The solution is to change `Parser` into a data type:
+
+```purescript
+data Parser a
+  = Parser (Array String) (Input -> Either String a)
+```
+
+Exercises:
+
+1. Write a `Functor` instance for `Parser` (no deriving permitted).
+2. Write a `Apply` instance for `Parser`.
+3. Write a `Applicative` instance for `Parser`.
