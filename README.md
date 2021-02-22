@@ -195,3 +195,16 @@ appliedOptionsParser = optionsParser appliedServerParser appliedCredentialsParse
 
 optionsParserTest = assertEquals (appliedOptionsParser exampleInput) (Right $ Options (Server Https "example.com" 8000) { login: "admin", password: "hunter2" })
 ```
+
+### Pill 4
+
+The obvious next step is to add help text to each option. To do that, we can change `Parser` into a `Tuple`:
+
+```purescript
+type Parser a
+  = Tuple (Array String) (Input -> Either String a)
+```
+
+The idea here is that each parser will have its own help text, and when composing parsers, each parser's help text will be joined with the next one. At the end, we will be able to show the full command help text to the user.
+
+<!-- TODO: add some exercises. -->
