@@ -12,8 +12,10 @@ You can edit this file as you like.
   , "maybe"
   , "ordered-collections"
   , "psci-support"
+  , "safe-coerce"
   , "strings"
   , "tuples"
+  , "validation"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs", "test/**/*.purs" ]

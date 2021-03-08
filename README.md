@@ -251,3 +251,29 @@ Exercises:
 2. Write a `Apply` instance for `Parser`.
 3. Write a `Applicative` instance for `Parser`.
 <!-- TODO: add an exercise to rewrite the existing functions (we won't as well mention every single function to migrate). -->
+
+### Pill 6
+
+Imagine you're a person who's trying out `ps-client` for the first time. You try to run it like this for example:
+
+```console
+> ps-client https://example.com:8000/?login=admin&password=hunter2
+```
+
+**WARNING**: PLEASE do not pass credentials using URL arguments in production (or at all really).
+
+You'll get an error when you try to run that of course, telling you that you're missing an option. You, the new `ps-client` user, will re-run the command but with the name of the parameter stated in the error. However, you'll have to re-run it four(!) times, once to know each parameter. That isn't great in terms of UX obviously, so you'd probably want to output all errors at once. You might think that one way to do that is to somehow allow `Either` to collect multiple errors. Well, again, that already exists: introducing [`V`](https://pursuit.purescript.org/packages/purescript-validation/5.0.0/docs/Data.Validation.Semigroup#t:V).
+
+We'll change `Parser` to use `V`:
+
+```purescript
+data Parser a
+  = Parser (Array String) (Input -> V (Array String) a)
+```
+
+Note that the error type is `Array String`, as we want to collect multiple errors.
+
+<!-- NOTE: we may want to link to https://book.purescript.org/chapter7.html#applicative-validation-1. -->
+
+Exercises:
+1. Migrate all the parsers to the new `Parser` type. That should be trivial, as it's only a matter of wrapping `Either`s with `V` or using `invalid` and `pure` instead of `Left` and `Right` respectively.
