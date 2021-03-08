@@ -250,3 +250,4 @@ Exercises:
 1. Write a `Functor` instance for `Parser` (no deriving permitted).
 2. Write a `Apply` instance for `Parser`.
 3. Write a `Applicative` instance for `Parser`.
+<!-- TODO: add an exercise to rewrite the existing functions (we won't as well mention every single function to migrate). -->
