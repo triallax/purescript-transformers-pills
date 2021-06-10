@@ -1,14 +1,23 @@
-module Pill1Answers where
+module Main where
 
 import Prelude
+
 import Data.Array (foldM)
 import Data.Array as Array
 import Data.Int as Int
-import Data.String as String
+import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
+import Data.String as String
 import Data.Tuple (Tuple(..))
-import Pill1Types (Parser, Input)
+import Effect (Effect)
+import Effect.Console (log, logShow)
+
+type Input
+  = Map String (Array String)
+
+type Parser a
+  = Input -> Maybe a
 
 intParser :: String -> Parser Int
 -- intParser :: String -> Input -> Maybe Int
