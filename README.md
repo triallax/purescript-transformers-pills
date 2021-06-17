@@ -299,6 +299,8 @@ Exercises:
 3. Implement an instance of `Applicative` for `Compose`.
 4. Try to implement an instance of `Bind` for `Compose`. You will find out that it's impossible to do so. Sit and think about what could be the reason for a while.
 
+**NOTE**: if you have trouble with the above exercises, it might help to use concrete types instead of `f` and `g` (e.g. `Maybe` and `Array`).
+
 <!--
 Note for next meetup: we will split pill 7 into an "abstract" part,
 which will be the actual future pill 7,
