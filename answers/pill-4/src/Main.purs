@@ -1,14 +1,87 @@
-module Pill4Answers where
+module Main where
 
-import Pill4Types (Credentials, Input, Options(..), Parser, Scheme(..), Server(..))
 import Prelude
+
+import Data.Array (foldM)
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Int as Int
+import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
-import Data.Tuple (fst, snd)
+import Data.String as String
+import Data.Tuple (Tuple(..), fst, snd)
 import Data.Tuple.Nested ((/\))
+
+type Input
+  = Map String (Array String)
+
+type Parser a
+  = Tuple (Array String) (Input -> Either String a)
+
+data Scheme
+  = Http
+  | Https
+
+derive instance Eq Scheme
+
+instance Show Scheme where
+  show Http = "Http"
+  show Https = "Https"
+
+-- Server $SCHEME $HOST $PORT
+data Server
+  = Server Scheme String Int
+
+derive instance Eq Server
+
+instance Show Server where
+  show (Server scheme host port) =
+    "(Server " <> show scheme <> " " <> show host <> " " <> show port <> ")"
+
+type Credentials
+  = { login :: String, password :: String }
+
+data Options
+  = Options Server Credentials
+
+derive instance Eq Options
+
+instance Show Options where
+  show (Options server creds) =
+    "(Options " <> show server <> " " <> show creds <> ")"
+
+type FoldAcc
+  = { acc :: Input
+    , prev :: Maybe { key :: String, values :: Array String }
+    }
+
+fold :: Array String -> Maybe Input
+fold [] = Just Map.empty
+
+fold args = do
+  { acc, prev } <-
+    foldM go { acc: Map.empty, prev: Nothing } args
+  { values, key } <- prev
+  pure $ Map.insert key values acc
+  where
+  go :: FoldAcc -> String -> Maybe FoldAcc
+  go { acc, prev } curr = do
+    let
+      maybeCurrKey = String.stripPrefix (String.Pattern "--") curr
+    case maybeCurrKey, prev of
+      Just key, Nothing -> Just { acc, prev: Just { key, values: [] } }
+      Just currKey, Just { key: prevKey, values } ->
+        Just
+          { prev: Just { key: currKey, values: [] }
+          , acc: Map.insert prevKey values acc
+          }
+      Nothing, Just { key, values } ->
+        Just
+          { acc
+          , prev: Just { key, values: Array.snoc values curr }
+          }
+      Nothing, Nothing -> Nothing
 
 intParser :: Array String -> String -> Parser Int
 -- intParser :: String -> Input -> Either String Int
@@ -32,13 +105,18 @@ stringParser helpText name =
         Just _ -> Left $ "Expected option \"" <> name <> "\" to have one value only"
         Nothing -> Left $ "Missing option \"" <> name <> "\""
 
+tupleParser :: forall a b. Parser a -> Parser b -> Parser (Tuple a b)
+tupleParser (parserAHelpText /\ parserAFn) (parserBHelpText /\ parserBFn) =
+  Array.concat [ parserAHelpText <> parserBHelpText ]
+    /\ \input -> Tuple <$> parserAFn input <*> parserBFn input
+
 schemeParser :: Array String -> String -> Parser Scheme
 schemeParser helpText key =
   fst parser
     /\ \input -> case snd parser input of
         Right "http" -> Right Http
         Right "https" -> Right Https
-        Right value -> Left $ "Expected option \"" <> key <> "\" to have value \"http\" or \"https\"."
+        Right _ -> Left $ "Expected option \"" <> key <> "\" to have value \"http\" or \"https\"."
         Left e -> Left e
   where
   parser = stringParser helpText key
@@ -83,7 +161,7 @@ data Result a
   | Error String (Array String)
   | Success a
 
-instance showResult :: Show a => Show (Result a) where
+instance Show a => Show (Result a) where
   show = case _ of
     HelpText helpText -> "(HelpText " <> show helpText <> ")"
     Error err helpText -> "(Error " <> show err <> show helpText <> ")"

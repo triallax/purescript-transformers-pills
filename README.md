@@ -70,10 +70,7 @@ stringParserTest4 = assertEquals (stringParser "whatever" exampleInput) Nothing
 stringParserTest5 = assertEquals (stringParser "host" $ Map.fromFoldable [ "host" /\ [ "example.com", "purescript.org" ] ]) Nothing
 ```
 
-<!--
 3. Please write a function `tupleParser :: forall a b. Parser a -> Parser b -> Parser (Tuple a b)`. Check that these tests run correctly:
-
- TODO: provide two solutions: one by hand and one using Apply
 
 ```purescript
 credentialsParserTest = assertEquals (tupleParser (stringParser "login") (stringParser "password")) (Just (Tuple "admin" "hunter2"))
@@ -82,7 +79,6 @@ clientParserTest = assertEquals (tupleParser (stringParser "host") (intParser "p
 
 failedTupleTest = assertEquals (tupleParser (intParser "host") (stringParser "port")) Nothing
 ```
--->
 
 4. (Only for the curious since it is not directly relevant to our topic) Please write a function `fold :: Array String -> Maybe Input`. `fold` should transform from an array of command-line options to `Input`. Check that these tests run correctly:
 
@@ -197,7 +193,7 @@ appliedOptionsParser = optionsParser appliedServerParser appliedCredentialsParse
 optionsParserTest = assertEquals (appliedOptionsParser exampleInput) (Right $ Options (Server Https "example.com" 8000) { login: "admin", password: "hunter2" })
 ```
 
-### Pill 4
+#### Pill 4
 
 The obvious next step is to add help text to each option. To do that, we can change `Parser` into a `Tuple`:
 
@@ -210,7 +206,7 @@ The idea here is that each parser will have its own help text, and when composin
 
 <!-- TODO: add some exercises. -->
 
-### Pill 5
+#### Pill 5
 
 Many readers will have probably noticed that composing parsers is unnecessarily verbose. For example, here's a possible implementation of `serverParser`:
 
@@ -251,8 +247,9 @@ Exercises:
 2. Write a `Apply` instance for `Parser`.
 3. Write a `Applicative` instance for `Parser`.
 <!-- TODO: add an exercise to rewrite the existing functions (we won't as well mention every single function to migrate). -->
+<!-- TODO: we need tests for the above instances. -->
 
-### Pill 6
+#### Pill 6
 
 Imagine you're a person who's trying out `ps-client` for the first time. You try to run it like this for example:
 
@@ -260,7 +257,7 @@ Imagine you're a person who's trying out `ps-client` for the first time. You try
 > ps-client https://example.com:8000/?login=admin&password=hunter2
 ```
 
-**WARNING**: PLEASE do not pass credentials using URL arguments in production (or at all really).
+**WARNING**: PLEASE do not pass credentials using URL arguments in production.
 
 You'll get an error when you try to run that of course, telling you that you're missing an option. You, the new `ps-client` user, will re-run the command but with the name of the parameter stated in the error. However, you'll have to re-run it four(!) times, once to know each parameter. That isn't great in terms of UX obviously, so you'd probably want to output all errors at once. You might think that one way to do that is to somehow allow `Either` to collect multiple errors. Well, again, that already exists: introducing [`V`](https://pursuit.purescript.org/packages/purescript-validation/5.0.0/docs/Data.Validation.Semigroup#t:V).
 
@@ -276,4 +273,45 @@ Note that the error type is `Array String`, as we want to collect multiple error
 <!-- NOTE: we may want to link to https://book.purescript.org/chapter7.html#applicative-validation-1. -->
 
 Exercises:
+
 1. Migrate all the parsers to the new `Parser` type. That should be trivial, as it's only a matter of wrapping `Either`s with `V` or using `invalid` and `pure` instead of `Left` and `Right` respectively.
+
+#### Pill 7
+
+Now our rudimentary command-line options parser is mostly complete functionally. But some of you may find the boilerplate to define the `Parser` type's instances a bit annoying. In this isolated case, it's not much, but in a real-world application, where you would have different compositions of types (e.g. `Array` and `Maybe`), each will probably have instances similar to the others'. Wouldn't it be great if we had a type that would give us those instances for free?
+
+PureScript comes again to the rescue, this time with the `Compose` data type. It allows you to compose types together, giving you several instances as an extra (no `Bind`/`Monad` though; more on that later!). It's defined like this:
+
+```purescript
+newtype Compose f g a = Compose (f (g a))
+```
+
+Let's play around with it and add some instances!
+
+Exercises:
+
+1. Implement an instance of `Functor` for `Compose` (no deriving!). Note that for all of this pill's exercises, you will have to use `f` and `g`'s instances to implement `Composes`'s (e.g. for this exercise, you will have to use `f`'s and `g`'s `Functor` instances.)
+2. Implement an instance of `Apply` for `Compose` (this one is a bit difficult, so if you get stuck for too long, feel free to take a look at the solution. That doesn't mean you shouldn't try doing this though!).
+3. Implement an instance of `Applicative` for `Compose`.
+4. Try to implement an instance of `Bind` for `Compose`. You will find out that it's impossible to do so. Sit and think about what could be the reason for a while.
+
+**NOTE**: if you have trouble with the above exercises, it might help to use concrete types instead of `f` and `g` (e.g. `Maybe` and `Array`).
+
+#### Pill 8
+
+Now that we have implemented `Compose`, we're going to change `Parser`'s definition to use it:
+
+```
+type Parser = Compose (Tuple (Array String)) (Compose (Function Input) (V (Array String)))
+```
+
+**NOTE**: in a real-world application, you probably want to make this a `newtype`, which is easier to work with than type aliases due to multiple reasons:
+
+- better error messages
+- ability to define custom instances if necessary
+- hiding the constructor from other modules (to enforce invariants or provide a well-defined API)
+
+You can now remove all the instances you have defined for `Parser`; `Compose` gives them to us for free!
+
+Exercises:
+1. Compare the old `Parser`'s instances with `Compose`'s instances. How are they similar? How could you derive `Parser`'s instances from `Compose`'s?
