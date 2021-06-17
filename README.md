@@ -70,10 +70,7 @@ stringParserTest4 = assertEquals (stringParser "whatever" exampleInput) Nothing
 stringParserTest5 = assertEquals (stringParser "host" $ Map.fromFoldable [ "host" /\ [ "example.com", "purescript.org" ] ]) Nothing
 ```
 
-<!--
 3. Please write a function `tupleParser :: forall a b. Parser a -> Parser b -> Parser (Tuple a b)`. Check that these tests run correctly:
-
- TODO: provide two solutions: one by hand and one using Apply
 
 ```purescript
 credentialsParserTest = assertEquals (tupleParser (stringParser "login") (stringParser "password")) (Just (Tuple "admin" "hunter2"))
@@ -82,7 +79,6 @@ clientParserTest = assertEquals (tupleParser (stringParser "host") (intParser "p
 
 failedTupleTest = assertEquals (tupleParser (intParser "host") (stringParser "port")) Nothing
 ```
--->
 
 4. (Only for the curious since it is not directly relevant to our topic) Please write a function `fold :: Array String -> Maybe Input`. `fold` should transform from an array of command-line options to `Input`. Check that these tests run correctly:
 
@@ -300,12 +296,6 @@ Exercises:
 4. Try to implement an instance of `Bind` for `Compose`. You will find out that it's impossible to do so. Sit and think about what could be the reason for a while.
 
 **NOTE**: if you have trouble with the above exercises, it might help to use concrete types instead of `f` and `g` (e.g. `Maybe` and `Array`).
-
-<!--
-Note for next meetup: we will split pill 7 into an "abstract" part,
-which will be the actual future pill 7,
-while the usage of `Compose` in the context of `Parser` will be moved to pill 8.
--->
 
 #### Pill 8
 
